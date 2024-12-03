@@ -138,7 +138,7 @@ async function suggestCategory () {
   sessions["step" + step + "-" + messageId].result = aiResponse.result;
   await set(sessionRef, sessions["step" + step + "-" + messageId]);
   let message = `
-  <div class="ai-msg msg last">
+  <div class="ai-msg msg">
     <p>あなたにおすすめの散歩の目的地は…</p>
     ${sessions["step" + step + "-" + messageId].result}
   </div>
@@ -160,6 +160,22 @@ async function suggestDestination () {
   ・各スポットについて、徒歩での所要時間（分単位）と距離（キロメートル単位）を明記してください。
   結果には徒歩50分以上かかる場所を含めないでください。
   `;
+  const sessionRef = ref(window.db, "sessions/step4-" + messageId);
+  const result = await model.generateContent(prompt);
+  const destination = {
+    destination: result.response.text(),
+  };
+  if (!sessions["step4-" + messageId]) {
+    sessions["step4-" + messageId] = {};
+  }
+  sessions["step4-" + messageId].destination = destination.destination;
+  await set(sessionRef, sessions["step4-" + messageId]);
+  let message = `
+  <div class="ai-msg msg">
+    ${sessions["step4-" + messageId].destination}
+  </div>
+  `;
+  $('.contents').append(message);
 }
 
 // ---その他の関数---

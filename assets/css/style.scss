@@ -26,14 +26,11 @@
 
         .msg {
           padding: calc(15 / 750 * 100vw);
-          width: 75%;
           height: fit-content;
           background-color: #fff;
-          border-radius: 2vw;
-          margin-left: 85%;
+          border-radius: calc(15 / 750 * 100vw);
           font-size: calc(16 / 750 * 100vw);
           line-height: 1.5;
-          position: relative;
 
           p {
             &:nth-of-type(2) {
@@ -44,33 +41,38 @@
           &:not(.msg:first-of-type) {
             margin-top: calc(30 / 750 * 100vw);
           }
+        }
 
-          &:not(.msg:nth-of-type(even)) {
-            margin-left: 0;
-            &::after {
-              content: "";
-              position: absolute;
-              bottom: -4px;
-              left: -24px;
-              border: 12px solid transparent;
-              border-right: 18px solid #fff;
-              transform: rotate(-22.5deg);
-            }
-          }
+        .ai-msg {
+          width: 75%;
+          margin-left: 0;
+          position: relative;
+
           &::after {
             content: "";
             position: absolute;
             bottom: 0;
-            left: 48px;
-            border: 6px solid transparent;
-            border-left: 12px solid #fff;
-            transform: rotate(22.5deg);
+            left: calc(-22 / 750 * 100vw);
+            border: calc(12 / 750 * 100vw) solid transparent;
+            border-right: calc(18 / 750 * 100vw) solid #fff;
+            transform: rotate(-22.5deg);
           }
-          
         }
 
         .user-msg {
           width: 10%;
+          margin-left: 85%;
+          position: relative;
+          
+          &::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: calc(-22 / 750 * 100vw);
+            border: calc(12 / 750 * 100vw) solid transparent;
+            border-left: calc(18 / 750 * 100vw) solid #fff;
+            transform: rotate(22.5deg);
+          }
         }
       }
     }
@@ -94,8 +96,8 @@
         margin: 0 auto;
         justify-content: space-between;
         margin-top: calc(20 / 750 * 100vw);
-        
-        .btn{
+
+        .btn {
           padding: 0;
           display: block;
           width: calc(160 / 750 * 100vw);
@@ -106,7 +108,7 @@
           font-size: calc(80 / 750 * 100vw);
           color: #fff;
         }
-        
+
         .restart-btn {
           font-size: calc(32 / 750 * 100vw);
         }
@@ -117,7 +119,8 @@
 
 @media screen and (min-width: 750px) {
   main {
-    width: 70%;
+    // width: 70%;
+    max-width: 750px;
     overflow-x: hidden;
 
     .contents__wrapper {
@@ -136,9 +139,8 @@
 
         .msg {
           padding: 15px;
-          width: 65%;
-          margin-left: 90%;
           font-size: 16px;
+          border-radius: 15px;
 
           p {
 
@@ -147,34 +149,41 @@
             }
           }
 
-          &:not(.msg:first-of-type) {
+          &:not(.ai-msg:first-of-type) {
             margin-top: 15px;
           }
-
-          &:not(.msg:nth-of-type(even)) {
-            &::after {
-              content: "";
-              position: absolute;
-              bottom: 0;
-              left: -32px;
-              border: 18px solid transparent;
-              border-right: 24px solid #fff;
-              transform: rotate(-22.5deg);
-            }
-          }
+        }
+        
+        .ai-msg {
+          width: 65%;
+          margin-left: 2.5%;
+          position: relative;
+          
           &::after {
             content: "";
             position: absolute;
             bottom: 0;
-            left: 51px;
-            border: 12px solid transparent;
-            border-left: 18px solid #fff;
-            transform: rotate(22.5deg);
+            left: -7%;
+            border: 18px solid transparent;
+            border-right: 24px solid #fff;
+            transform: rotate(-20.5deg);
           }
         }
 
         .user-msg {
           width: 5%;
+          margin-left: 90%;
+          position: relative;
+          
+          &::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: -35%;
+            border: 12px solid transparent;
+            border-left: 18px solid #fff;
+            transform: rotate(20.5deg);
+          }
         }
       }
     }
@@ -191,7 +200,7 @@
         margin-top: 10px;
         column-gap: 60px;
         justify-content: center;
-        
+
         .btn {
           width: 150px;
           height: 150px;
@@ -199,13 +208,13 @@
           opacity: 1;
           transition: .3s;
           cursor: pointer;
-          
+
           &:hover {
             opacity: .7;
             transition: .3s;
           }
         }
-        
+
         .restart-btn {
           font-size: 32px;
         }
