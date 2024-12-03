@@ -19,7 +19,7 @@ let step = 1;
 let messageId;
 const sessions = {};
 // ボタンを押せるか挙動設定
-let btnFlag = true;
+let btnFlag = false;
 
 // 全体の流れ
 $(function () {
@@ -110,14 +110,15 @@ async function replyAiMsg (userAnswer) {
 // 目的地の提案
 async function suggestCategory () {
   step++;
-  const history = await fetchSessionHistory(); // Firebaseから履歴を取得
+  const history = await fetchAllSessionHistory(); // Firebaseから履歴を取得
+  // console.log(history);
   const prompt = `
-    1つ目の質問:${sessions["step1-" + messageId].aiResponse}
-    回答:${sessions["step1-" + messageId].userResponse}
-    2つ目の質問:${sessions["step2-" + messageId].aiResponse}
-    回答:${sessions["step2-" + messageId].userResponse}
-    3つ目の質問:${sessions["step3-" + messageId].aiResponse}
-    回答:${sessions["step3-" + messageId].userResponse}
+    1つ目の質問:${history["step1"].aiResponse}
+    回答:${history["step1"].userResponse}
+    2つ目の質問:${history["step2"].aiResponse}
+    回答:${history["step2"].userResponse}
+    3つ目の質問:${history["step3"].aiResponse}
+    回答:${history["step3"].userResponse}
     上記の情報を基に、適切な散歩の目的地を提案してください。
     以下の条件に従ってください。
     ・カテゴリで提案する。（例: 公園、史跡）
@@ -135,7 +136,6 @@ async function suggestCategory () {
     sessions["step" + step + "-" + messageId] = {};
   }
   sessions["step" + step + "-" + messageId].result = aiResponse.result;
-  console.log(sessions["step" + step + "-" + messageId]);
   await set(sessionRef, sessions["step" + step + "-" + messageId]);
   let message = `
   <div class="ai-msg msg last">
@@ -148,9 +148,18 @@ async function suggestCategory () {
   suggestDestination();
 }
 
-async function suggestDestination() {
-  const history = await fetchAllSessionHistory(); // Firebaseから履歴を取得
+async function suggestDestination () {
+  step++;
+  const history = await fetchAllSessionHistory();
+  console.log("step", step)
   console.log(history);
+  const prompt = `
+  ${history["step4"].result}
+  上記の文章と以下の条件をもとにおすすめのスポットをリストアップしてください
+  ・現在地から徒歩50分未満で到達可能であること。
+  ・各スポットについて、徒歩での所要時間（分単位）と距離（キロメートル単位）を明記してください。
+  結果には徒歩50分以上かかる場所を含めないでください。
+  `;
 }
 
 // ---その他の関数---
@@ -174,22 +183,20 @@ async function fetchSessionHistory () {
 // 会話履歴を全て取得する
 async function fetchAllSessionHistory () {
   const sessionArr = {};
-  for (let n = 1; n < 5; n++) {
+  for (let n = 1; n < step; n++) {
     const sessionRef = await ref(window.db, "sessions/step" + n + "-" + messageId);
     const snapshot = await get(sessionRef);
     await new Promise(resolve => setTimeout(resolve, 500));  // 500ms待機
 
     if (snapshot.exists()) {
-      let step = "step" + n;
-      console.log(step, snapshot.val());
-      // const history = snapshot.val();
-      sessionArr[step] = snapshot.val();
-      // console.log(sessionArr);
+      let index = "step" + n;
+      sessionArr[index] = snapshot.val();
     } else {
       console.log("No chat history found.");
       return null;
     }
   }
+  // console.log(sessionArr)
   return sessionArr;
 }
 
