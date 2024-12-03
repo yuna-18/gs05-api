@@ -1,5 +1,4 @@
 import {GoogleGenerativeAI} from "@google/generative-ai";
-import {initializeApp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import {ref, set, push, get}
   from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 // Access your API key as an environment variable (see "push up your API key" above)
@@ -27,11 +26,11 @@ $(function () {
   initMsg();
   // 送信ボタンクリック・エンターキー押した時の挙動
   $('.select-btn').on("click", function () {
-      if (btnFlag === true) {
-        sendAnswer(this.value);
-      } else {
-        return;
-      }
+    if (btnFlag === true) {
+      sendAnswer(this.value);
+    } else {
+      return;
+    }
   });
 });
 
@@ -57,18 +56,6 @@ function createUserMsg (sendAnswer) {
   $('.contents').append(message);
 }
 
-//最後の要素作成
-function createLastAiMsg (aiMsg) {
-  let message = `
-  <div class="ai-msg msg last">
-    <p>あなたにおすすめの散歩の目的地は…</p>
-    ${aiMsg}
-  </div>
-  `;
-  $('.contents').append(message);
-}
-
-
 // ---AIプロンプト---
 // AI初期メッセージ
 async function initMsg () {
@@ -88,7 +75,7 @@ async function initMsg () {
   sessions["step" + step + "-" + messageId].aiResponse = aiResponse.text;
   await set(sessionRef, sessions["step" + step + "-" + messageId]);
   createAiMsg(question);
-
+  console.log(messageId);
   return id;
 }
 
@@ -121,10 +108,10 @@ async function replyAiMsg (userAnswer) {
 }
 
 // 目的地の提案
-async function lastAiMsg () {
+async function suggestCategory () {
   step++;
   const history = await fetchSessionHistory(); // Firebaseから履歴を取得
-  const lastPrompt = `
+  const prompt = `
     1つ目の質問:${sessions["step1-" + messageId].aiResponse}
     回答:${sessions["step1-" + messageId].userResponse}
     2つ目の質問:${sessions["step2-" + messageId].aiResponse}
@@ -139,7 +126,7 @@ async function lastAiMsg () {
     ・シンプルな文章。
   `;
   const sessionRef = ref(window.db, "sessions/step" + step + "-" + messageId);
-  const result = await model.generateContent(lastPrompt);
+  const result = await model.generateContent(prompt);
   const destination = result.response.text();
   const aiResponse = {
     result: destination,
@@ -150,7 +137,20 @@ async function lastAiMsg () {
   sessions["step" + step + "-" + messageId].result = aiResponse.result;
   console.log(sessions["step" + step + "-" + messageId]);
   await set(sessionRef, sessions["step" + step + "-" + messageId]);
-  createLastAiMsg(sessions["step" + step + "-" + messageId].result);
+  let message = `
+  <div class="ai-msg msg last">
+    <p>あなたにおすすめの散歩の目的地は…</p>
+    ${sessions["step" + step + "-" + messageId].result}
+  </div>
+  `;
+  $('.contents').append(message);
+  
+  suggestDestination();
+}
+
+async function suggestDestination() {
+  const history = await fetchAllSessionHistory(); // Firebaseから履歴を取得
+  console.log(history);
 }
 
 // ---その他の関数---
@@ -171,11 +171,34 @@ async function fetchSessionHistory () {
   }
 }
 
+// 会話履歴を全て取得する
+async function fetchAllSessionHistory () {
+  const sessionArr = {};
+  for (let n = 1; n < 5; n++) {
+    const sessionRef = await ref(window.db, "sessions/step" + n + "-" + messageId);
+    const snapshot = await get(sessionRef);
+    await new Promise(resolve => setTimeout(resolve, 500));  // 500ms待機
+
+    if (snapshot.exists()) {
+      let step = "step" + n;
+      console.log(step, snapshot.val());
+      // const history = snapshot.val();
+      sessionArr[step] = snapshot.val();
+      // console.log(sessionArr);
+    } else {
+      console.log("No chat history found.");
+      return null;
+    }
+  }
+  return sessionArr;
+}
+
+
+
 // 送信
 async function sendAnswer (answer) {
   btnFlag = false;
   let userAnswer = answer;
-  console.log(userAnswer);
   createUserMsg(userAnswer);
   const sessionRef = ref(window.db, "sessions/step" + step + "-" + messageId);
   const userResponse = {
@@ -193,7 +216,7 @@ async function sendAnswer (answer) {
     }, 500);
   } else {
     setTimeout(() => {
-      lastAiMsg();
+      suggestCategory();
     }, 500);
   }
 }
