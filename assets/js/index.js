@@ -37,8 +37,6 @@ script.onerror = () => {
 
 // チャットの進行具合管理
 let step = 1;
-// 目的地検索の回数管理
-// let searchNum = 1;
 // 固有のメッセージID
 let messageId;
 // メッセージ内容一時記録
@@ -134,6 +132,7 @@ async function suggestCategory () {
       カテゴリ: <カテゴリ名>
     - カテゴリは「カフェ、公園、史跡、商店街、その他」から選ぶ。
     - カテゴリを囲むpタグには"category"クラスをつける
+    - 日本語であること。
     - カテゴリ以外の文章を含めない
 `;
 
@@ -151,6 +150,7 @@ async function suggestCategory () {
       具体的な検索キーワード
     - クエリはGoogle Maps Places APIの検索にそのまま使用できる具体的なフレーズ。
     - クエリは" , "区切りで出力すること
+    - 日本語であること。
     - クエリ以外の文章を含めない
 `;
 
@@ -173,11 +173,32 @@ async function suggestCategory () {
 }
 
 // ---Google Map API
-// const directionService = new google.maps.DirectionsService();
-// await directionService.route
 
+// 距離と時間検索
+async function getDirectionInfo(address) {
+  const directionService = new google.maps.DirectionsService();
+  await directionService
+    .route({
+      origin: {
+        latitude: currentPosition.lat,
+        longitude: currentPosition.lng,
+      },
+      destination: {
+        query: address,
+      },
+      travelMode: google.maps.TravelMode.TRANSIT,
+    })
+    .then((response) => {
+    
+    })
+    .catch((e) => {
+      console.log('error: ' + e);
+  })
+}
+
+// 具体的な場所検索
 let searchRadius = 3000; // 初期半径
-function searchPlaces(query, retryCount = 0) {
+async function searchPlaces(query, retryCount = 0) {
   step++;
   const mapElement = document.querySelector('#map');
   if (!mapElement) {
@@ -193,20 +214,33 @@ function searchPlaces(query, retryCount = 0) {
     location: new google.maps.LatLng(currentPosition.lat, currentPosition.lng),
     radius: searchRadius, // 半径を設定
   };
-  
+
   let message = `
   <div class="ai-msg msg result">
     <p>あなたにおすすめの散歩の目的地は…</p>
-    <p>検索条件： ${query}</p>
+    <p>検索条件: ${query}</p>
     <ul></ul>
   </div>
   `;
   $('.contents').append(message);
 
-  service.textSearch(request, (results, status) => {
+  service.textSearch(request, async (results, status) => {
     if (status === google.maps.places.PlacesServiceStatus.OK) {
       for (let i = 0; i < results.length; i++) {
         const place = results[i];
+        const geometry = place.geometry;
+        
+        if (geometry && geometry.location) {
+          const coordinates = {
+            latitude: geometry.location.lat(),
+            longitude: geometry.location.lng(),
+          };
+
+          getDirectionInfo(coordinates); // 取得した緯度経度を渡す
+        } else {
+          console.error("Geometry or location not found for place:", place);
+        }
+        
         const contentString = '<li>' + place.name + '</li>';
         $('.msg.result ul').append(contentString);
       }
@@ -217,7 +251,9 @@ function searchPlaces(query, retryCount = 0) {
       createAiMsg(`<p>指定した条件では結果が見つかりませんでした。<br>検索を終了します。</p>`);
     }
   });
-};
+}
+
+
 
 
 
@@ -329,7 +365,6 @@ function getLocationInfo () {
       locationInfo = prompt("必須入力です。\n目的地の提案に使う住所を町名まで入力してください。");
       if (locationInfo !== "") {
         normalize(locationInfo).then(result => {
-          console.log(result);
           currentPosition.lat = result.point.lat;
           currentPosition.lng = result.point.lng;
         });
