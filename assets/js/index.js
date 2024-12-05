@@ -176,7 +176,8 @@ async function suggestCategory () {
 // const directionService = new google.maps.DirectionsService();
 // await directionService.route
 
-async function searchPlaces (query) {
+let searchRadius = 3000; // 初期半径
+function searchPlaces(query, retryCount = 0) {
   step++;
   const mapElement = document.querySelector('#map');
   if (!mapElement) {
@@ -190,7 +191,7 @@ async function searchPlaces (query) {
     query: query,
     fields: ['name', 'place_id', 'geometry'],
     location: new google.maps.LatLng(currentPosition.lat, currentPosition.lng),
-    radius: 10000, // 半径を設定
+    radius: searchRadius, // 半径を設定
   };
   
   let message = `
@@ -208,12 +209,12 @@ async function searchPlaces (query) {
         const place = results[i];
         const contentString = '<li>' + place.name + '</li>';
         $('.msg.result ul').append(contentString);
-        // createAiMsg(contentString);
       }
-    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-      createAiMsg(`<p>指定した条件では結果が見つかりませんでした。<br>検索を終了します。</p>`);
+    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS && retryCount < 5) {
+      searchRadius += 5000; // 半径を拡大
+      searchPlaces(query, retryCount + 1);
     } else {
-      console.error(`PlacesService failed with status: ${status}`);
+      createAiMsg(`<p>指定した条件では結果が見つかりませんでした。<br>検索を終了します。</p>`);
     }
   });
 };
