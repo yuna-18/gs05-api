@@ -45,6 +45,8 @@ const sessions = {};
 let btnFlag = false;
 // 位置情報保持
 let currentPosition = new Object();
+//所要時間や距離保持
+let routeData = new Object();
 
 
 // ---全体の流れ
@@ -117,7 +119,6 @@ async function replyAiMsg (userAnswer) {
 async function suggestCategory () {
   step++;
   const history = await fetchAllSessionHistory(); // Firebaseから履歴を取得
-  // console.log(history);
   const categoryPrompt = `
     以下はこれまでのユーザーの回答です。
     1つ目の質問: ${history["step1"].aiResponse}
@@ -167,45 +168,56 @@ async function suggestCategory () {
   }
   sessions["step" + step + "-" + messageId].category = aiResponse.category;
   await set(sessionRef, sessions["step" + step + "-" + messageId]);
-  console.log("category", category);
-  console.log("query", query);
   searchPlaces(query);
 }
 
 // ---Google Map API
 
 // 距離と時間検索
-async function getDirectionInfo(address) {
-  const directionService = new google.maps.DirectionsService();
-  await directionService
-    .route({
-      origin: {
-        latitude: currentPosition.lat,
-        longitude: currentPosition.lng,
-      },
-      destination: {
-        query: address,
-      },
-      travelMode: google.maps.TravelMode.TRANSIT,
-    })
-    .then((response) => {
-    
-    })
-    .catch((e) => {
-      console.log('error: ' + e);
-  })
+function getDirectionInfo (address, placeName) {
+  const distanceMatrixservice = new google.maps.DistanceMatrixService();
+
+  // 所要時間取得
+  distanceMatrixservice.getDistanceMatrix({
+    origins: [currentPosition.lat + "," + currentPosition.lng], // 出発地
+    destinations: [address.lat + "," + address.lng], // 目的地
+    travelMode: google.maps.TravelMode.WALKING, // 移動手段
+  }, (response, status) => timeRequired(response, status, placeName));
+}
+
+// 所要時間
+function timeRequired (response, status, placeName) {
+  let distance;
+  let duration;
+  if (status == "OK") {
+    var origins = response.originAddresses;
+    var destinations = response.destinationAddresses;
+
+    for (var i = 0; i < origins.length; i++) {
+      var results = response.rows[i].elements;
+      for (var j = 0; j < results.length; j++) {
+        var element = results[j];
+        distance = element.distance.text;
+        duration = element.duration.text;
+        // var from = origins[i];
+        // var to = destinations[j];
+      }
+    }
+    routeData.name = placeName;
+    routeData.distance = distance;
+    routeData.duration = duration;
+  }
 }
 
 // 具体的な場所検索
 let searchRadius = 3000; // 初期半径
-async function searchPlaces(query, retryCount = 0) {
+async function searchPlaces (query, retryCount = 0) {
   step++;
   const mapElement = document.querySelector('#map');
   if (!mapElement) {
     console.error("The map container element was not found.");
     return;
   }
-
   const service = new google.maps.places.PlacesService(mapElement);
 
   const request = {
@@ -216,7 +228,7 @@ async function searchPlaces(query, retryCount = 0) {
   };
 
   let message = `
-  <div class="ai-msg msg result">
+  <div class="ai-msg msg result hidden">
     <p>あなたにおすすめの散歩の目的地は…</p>
     <p>検索条件: ${query}</p>
     <ul></ul>
@@ -228,21 +240,25 @@ async function searchPlaces(query, retryCount = 0) {
     if (status === google.maps.places.PlacesServiceStatus.OK) {
       for (let i = 0; i < results.length; i++) {
         const place = results[i];
+        const placeName = place.name;
         const geometry = place.geometry;
-        
+
         if (geometry && geometry.location) {
           const coordinates = {
-            latitude: geometry.location.lat(),
-            longitude: geometry.location.lng(),
+            lat: geometry.location.lat(),
+            lng: geometry.location.lng(),
           };
-
-          getDirectionInfo(coordinates); // 取得した緯度経度を渡す
+          
+          getDirectionInfo(coordinates, placeName); // 取得した緯度経度を渡す
+          console.log(routeData);
+          // if(data.duration )
         } else {
           console.error("Geometry or location not found for place:", place);
         }
-        
+
         const contentString = '<li>' + place.name + '</li>';
         $('.msg.result ul').append(contentString);
+        $('.msg.result').removeClass('hidden');
       }
     } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS && retryCount < 5) {
       searchRadius += 5000; // 半径を拡大
@@ -252,10 +268,6 @@ async function searchPlaces(query, retryCount = 0) {
     }
   });
 }
-
-
-
-
 
 // ---チャット機能---
 // AIメッセージ要素作成
@@ -373,7 +385,6 @@ function getLocationInfo () {
       alert("入力が確認できませんでした。もう一度入力してください。");
     }
   }
-  console.log(currentPosition);
 
   return locationInfo;
 }
