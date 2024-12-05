@@ -15,6 +15,22 @@ const aiPrompt = `
     ・質問文に数字をつけない。
     ・一度のメッセージに質問は1つまで。
   `;
+// GoogleMap API読み込み
+const script = document.createElement('script');
+script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAP_API_KEY}&libraries=places`;
+script.async = true;
+script.defer = true;
+document.head.appendChild(script);
+
+script.onload = () => {
+  console.log("Google Maps API loaded successfully!");
+  // ここにAPIを利用するコードを追加
+};
+script.onerror = () => {
+  console.error("Failed to load Google Maps API");
+};
+
+
 let step = 1;
 let messageId;
 const sessions = {};
@@ -110,7 +126,7 @@ async function replyAiMsg (userAnswer) {
   createAiMsg(nextQuestion);
 }
 
-// 目的地の提案
+// 目的地(カテゴリ)の提案
 async function suggestCategory () {
   step++;
   const history = await fetchAllSessionHistory(); // Firebaseから履歴を取得
@@ -151,15 +167,24 @@ async function suggestCategory () {
   suggestDestination();
 }
 
+// 目的地（具体的な場所）の提案
 async function suggestDestination () {
   step++;
   const history = await fetchAllSessionHistory();
   console.log("step", step);
   console.log(history);
+  let position;
+  if (currentPosition.address === undefined) {
+    let latitude = currentPosition.latitude;
+    let longitude = currentPosition.longitude;
+    position = latitude + ", " + longitude;
+  } else {
+    position = currentPosition.address;
+  }
   const aiPrompt = `
   ${history["step4"].result}
   上記の文章と以下の条件をもとにおすすめのスポットをリストアップしてください
-  ・現在地から徒歩50分未満で到達可能であること。
+  ・${position}から徒歩50分未満で到達可能であること。
   ・各スポットについて、徒歩での所要時間（分単位）と距離（キロメートル単位）を明記してください。
   結果には徒歩50分以上かかる場所を含めないでください。
   `;
@@ -219,6 +244,7 @@ async function fetchAllSessionHistory () {
   return sessionArr;
 }
 
+// 位置情報取得
 function getLocationInfo () {
   let locationInfo = confirm('目的地の提案のために現在地の取得が必要です。\n位置情報は目的地の提案が終了次第削除されます。\nまた、許可しない場合は入力もできます。\n現在地の取得を許可しますか？');
   if (locationInfo) {
@@ -247,7 +273,7 @@ function getLocationInfo () {
     }
   }
   console.log(currentPosition);
-  
+
   return locationInfo;
 }
 
