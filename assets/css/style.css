@@ -37,6 +37,12 @@
   main .contents__wrapper .contents .msg:not(.msg:first-of-type) {
     margin-top: 4vw;
   }
+  main .contents__wrapper .contents .msg.result p:nth-of-type(2) {
+    margin-top: 0;
+  }
+  main .contents__wrapper .contents .msg.result ul {
+    margin-top: 4vw;
+  }
   main .contents__wrapper .contents .ai-msg {
     width: 75%;
     margin-left: 0;
@@ -123,6 +129,12 @@
     margin-top: 15px;
   }
   main .contents__wrapper .contents .msg:not(.ai-msg:first-of-type) {
+    margin-top: 15px;
+  }
+  main .contents__wrapper .contents .msg.result p:nth-of-type(2) {
+    margin-top: 0;
+  }
+  main .contents__wrapper .contents .msg.result ul {
     margin-top: 15px;
   }
   main .contents__wrapper .contents .ai-msg {
